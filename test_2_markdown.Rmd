@@ -1,0 +1,191 @@
+---
+title: "Test 2"
+author: "M. Schonhoeft"
+date: "6/26/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Test 2
+
+Repo can be found here. <https://github.com/mitchelly00/test_2.git>.
+
+#### Question 1 cleaning the global enviroment
+
+```{r}
+rm(list = ls())
+```
+
+
+#### Question 2 loading the inequality package
+
+```{r pressure, echo=TRUE}
+library(rio)
+inequality_data<- import("inequality.xlsx", which=1)
+```
+
+#### Question 3 This is a Cross-sectional dataset
+
+- It is cross sectional because as you can see in the summary that the only year is 2015
+```{r,echo=TRUE}
+summary(inequality_data)
+```
+
+
+#### Question 4 finding the gini using subset
+
+```{r}
+subset(inequality_data,country=="Denmark")
+subset(inequality_data,country=="Sweden")
+```
+
+
+#### Question 5 finding the gini of Brazil
+```{r}
+subset(inequality_data,country=="Brazil")
+```
+
+
+#### Question 6 
+
+It is better to have a **low** inquality_gini score as seen by the lower Scandinavian countries. 
+
+#### Question 7 Quick peak 
+```{r}
+head(inequality_data)
+```
+
+#### Question 8 taking of the accent
+```{r}
+accent.remove<- function(s){
+    #1character subsitutions
+    old1<- "ú"
+    new1<- "u"
+    s1 <- chartr(old1,new1,s)
+  }
+
+inequality_data$country <- accent.remove(inequality_data$country)
+```
+
+Quick peak to make sure it is gone
+
+```{r}
+head(inequality_data)
+```
+
+#### Question 9 Sort the data to see which are the lowest scores 
+The head comand allows us to see what the top 5 countries are
+
+```{r}
+inequality_data = inequality_data[order(inequality_data$inequality_gini),]
+head(inequality_data)
+```
+
+
+#### Question 10 the mean inequaility_gini score
+na.rm is used to take out missing values
+```{r}
+mean(inequality_data$inequality_gini,na.rm = TRUE)
+```
+
+#### Question 11 using ifelse command 
+```{r}
+inequality_data$low_high = NA
+inequality_data$low_high[inequality_data$inequality_gini >= 36.81]=0
+inequality_data$low_high[inequality_data$inequality_gini< 36.81]=1
+
+ifelse(test = inequality_data$low_high==1,
+       yes = "low_inequality",no = "high_inequality")
+```
+
+
+#### Question 12 
+
+#### Question 13
+
+```{r}
+names<-c("The World Bank", "African Development Bank","the Bill and Melinda Gates Foundation")
+```
+
+
+#### Question 14
+I think there is a correlation between inflation and inequaility. If there is higher inflation then the government is doing a poor job of regulating the economy which would cause inequality to increase. 
+
+#### Question 15 inserting the data
+```{r}
+library(WDI)
+inflation_ds =WDI(country = "all",indicator = "NY.GDP.DEFL.KD.ZG",
+                     # indicator from web
+                     start = 2015, end = 2015, 
+                     extra = FALSE, cache = NULL)
+```
+
+#### Question 16 the new name of the variable
+```{r}
+library(data.table)
+setnames(inflation_ds,"NY.GDP.DEFL.KD.ZG","inflation")
+```
+
+#### Question 17 merging the data frames
+```{r}
+library(tidyverse)
+inflation_ds$year=as.numeric(inflation_ds$year)
+
+merged_df = left_join(x=inequality_data,y=inflation_ds,
+                       by=c("iso2c","year"))
+```
+
+take away the country.x
+```{r}
+merged_df<-
+  merged_df %>% 
+  select(-c("country.x")) %>% 
+  dplyr::rename("country"="country.y")
+```
+
+#### Question 18 removing the NAs
+```{r}
+merged_df=na.omit(merged_df, select=c("inequality_gini","inflation"))
+summary(merged_df)
+```
+
+#### Question 19 only keeping data greater than 30
+```{r}
+data_greater_30 <-
+  merged_df%>%
+  dplyr::filter(!(inequality_gini > 30))
+```
+
+
+#### Question 20 using data_greater_30 to see which countries have ai in their name
+```{r}
+grep("ai", data_greater_30$country)
+```
+
+#### Question 21
+```{r}
+sapply(data_greater_30$inequality_gini, sum)
+```
+
+#### question 22
+```{r}
+library(labelled)
+var_label(data_greater_30)<-list(`country`="country" ,
+                             `year` = "year" ,
+                             `inequality_gini` =
+                               "gini inequaility index" ,
+                             `iso2c` = "ISO-2 country code" ,
+                             `inflation` = "percent inflation of every country" ,
+                             `country` = "country")
+```
+#### Question 23
+```{r}
+library(rio)
+export(data_greater_30,"clean_dataset.dta")
+```
+
+
+
